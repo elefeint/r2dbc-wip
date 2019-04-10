@@ -16,7 +16,6 @@
 
 package io.r2dbc.spanner;
 
-import io.r2dbc.h2.H2Result;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -27,14 +26,11 @@ import io.r2dbc.spi.RowMetadata;
 import io.r2dbc.spi.Statement;
 import java.util.concurrent.CountDownLatch;
 import org.junit.Test;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
-import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
 
 /**
  */
@@ -47,15 +43,10 @@ public class SampleSpannerTest {
 
 		ConnectionFactory connectionFactory = ConnectionFactories.get(ConnectionFactoryOptions.builder()
 			.option(DRIVER, "spanner")
-			//.option(PROTOCOL, "mem")  // file, mem
-			//.option(DATABASE, "reactivesample")
-			//.option(Option.valueOf("url"), "jdbc:h2:mem:test")
-			//.option(Option.valueOf("options"), "INIT=runscript from 'classpath:schema.sql'")
+			.option(Option.valueOf("instance"), "reactivetest")
+			.option(DATABASE, "testdb")
 			.build());
 
-		//	new H2C
-
-		// had to cast; fix example in https://github.com/r2dbc/r2dbc-h2
 		Mono<Connection> connection = (Mono<Connection>)connectionFactory.create();
 		System.out.println("*** connection mono " + connection);
 
@@ -70,23 +61,24 @@ public class SampleSpannerTest {
 		connection.subscribe(conn -> {
 			System.out.println("*** subscribed: " + conn);
 
-			Statement statement = conn.createStatement("select count(*) from book");
-			Flux<SpannerResult> resultflux = (Flux)statement.execute();
+			Statement statement = conn.createStatement("select title from book");
+			Flux<SpannerResult> resultStream = (Flux<SpannerResult>)statement.execute();
 
-			resultflux.subscribe(result -> {
+			resultStream.subscribe(result -> {
 				System.out.println("*** result: " + result);
 				result.map((Row row, RowMetadata meta) -> {
-					System.out.println("*** fake column 0 requested: " + row.toString());
+					System.out.println("*** column 0 requested: " + row.toString());
 					return (String)row.get(0);
 				}).subscribe((String s) -> {
 					System.out.println("Row string retrieved: " + s);
 					latch.countDown();
+
+					System.out.println("after retrieving string diff thread: " + latch.getCount());
 				});
 			});
 		});
 
 		latch.await();
-
 
 	}
 }

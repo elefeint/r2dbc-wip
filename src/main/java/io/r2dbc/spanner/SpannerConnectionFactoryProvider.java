@@ -20,6 +20,7 @@ import io.r2dbc.h2.util.Assert;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
+import io.r2dbc.spi.Option;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
@@ -29,8 +30,13 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
 	@Override
 	public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
-		System.out.println("OMG OMG OMG this is supposed to return something");
-		return new SpannerConnectionFactory();
+		// TODO: add customizable url
+		System.out.println("connection factory options: " + connectionFactoryOptions);
+		SpannerConnectionConfiguration config = new SpannerConnectionConfiguration(
+			connectionFactoryOptions.getValue(Option.valueOf("instance")),
+			connectionFactoryOptions.getValue(Option.valueOf("database")));
+
+		return new SpannerConnectionFactory(config);
 	}
 
 	@Override

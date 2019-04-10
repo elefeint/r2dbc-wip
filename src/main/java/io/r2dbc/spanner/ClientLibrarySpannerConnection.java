@@ -16,6 +16,7 @@
 
 package io.r2dbc.spanner;
 
+import com.google.cloud.spanner.DatabaseClient;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
@@ -24,10 +25,13 @@ import org.reactivestreams.Publisher;
 
 /**
  */
-public class SpannerConnection implements Connection {
+public class ClientLibrarySpannerConnection implements Connection {
 
-	public SpannerConnection() {
+	private DatabaseClient databaseClient;
+
+	public ClientLibrarySpannerConnection(DatabaseClient databaseClient) {
 		System.out.println("=== spannerConnection constructor");
+		this.databaseClient = databaseClient;
 	}
 
 	public Publisher<Void> beginTransaction() {
@@ -50,11 +54,11 @@ public class SpannerConnection implements Connection {
 		return null;
 	}
 
-	public Statement createStatement(String s) {
+	public Statement createStatement(String sql) {
 		// plug into spring data spanner here?
 		// or streaming read vs streaming sql
 		System.out.println("=== Creating statement");
-		return new SpannerReadStatement();
+		return new ClientLibrarySpannerReadStatement(this.databaseClient, sql);
 	}
 
 	public Publisher<Void> releaseSavepoint(String s) {

@@ -16,19 +16,39 @@
 
 package io.r2dbc.spanner;
 
-import io.r2dbc.spi.Connection;
+import com.google.cloud.spanner.DatabaseClient;
+import com.google.cloud.spanner.DatabaseId;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.SpannerOptions;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 /**
  */
 public class SpannerConnectionFactory implements ConnectionFactory {
 
+	private SpannerConnectionConfiguration config;
+
+	public SpannerConnectionFactory(SpannerConnectionConfiguration config) {
+		this.config = config;
+	}
+
 	@Override
-	public Mono<SpannerConnection> create() {
-		return Mono.defer(() -> Mono.just(new SpannerConnection()));
+	public Mono<ClientLibrarySpannerConnection> create() {
+		return Mono.defer(() -> connect());
+	}
+
+	private Mono<ClientLibrarySpannerConnection> connect() {
+
+		SpannerOptions options = SpannerOptions.newBuilder().build();
+		Spanner spanner = options.getService();
+
+		DatabaseId db = DatabaseId.of(options.getProjectId(), config.getInstanceName(), config.getDatabaseName());
+		DatabaseClient dbClient = spanner.getDatabaseClient(db);
+
+		return Mono.just(new ClientLibrarySpannerConnection(dbClient));
+
 	}
 
 	@Override

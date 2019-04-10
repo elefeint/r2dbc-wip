@@ -16,6 +16,8 @@
 
 package io.r2dbc.spanner;
 
+import com.google.cloud.spanner.ResultSet;
+import com.google.cloud.spanner.Struct;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
@@ -30,6 +32,7 @@ import static reactor.function.TupleUtils.function;
  */
 public class SpannerResult implements Result {
 
+	/*
 	private Flux<SpannerRow> rows;
 
 	private Mono<SpannerRowMetadata> rowMetadata;
@@ -38,15 +41,39 @@ public class SpannerResult implements Result {
 		this.rows = rows;
 		this.rowMetadata = metadata;
 	}
+	*/
 
-	@Override public Publisher<Integer> getRowsUpdated() {
+	private ResultSet resultSet;
+
+	public SpannerResult(ResultSet resultSet) {
+		this.resultSet = resultSet;
+	}
+
+	@Override
+	public Publisher<Integer> getRowsUpdated() {
 		// TODO: implement
 		return Mono.just(1);
 	}
 
-	@Override public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
-		return this.rows
+	@Override
+	public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
+		return Flux.create(sink -> {
+			sink.onRequest(n -> {
+				System.out.println("=== demand = " + n);
+				for (int i = 0; i < n; i++) {
+					if (this.resultSet.next()) {
+						sink.next(f.apply(new SpannerRow(this.resultSet.getCurrentRowAsStruct()),
+							new SpannerRowMetadata()));
+					} else {
+						sink.complete();
+						break;
+					}
+				}
+			});
+
+		});
+/*		return this.rows
 			.zipWith(this.rowMetadata.repeat())
-			.map(function(f::apply));
+			.map(function(f::apply));*/
 	}
 }

@@ -16,25 +16,24 @@
 
 package io.r2dbc.spanner;
 
-import com.google.cloud.spanner.Struct;
-import io.r2dbc.spi.Row;
-
 /**
- * TODO: everything
  */
-public class SpannerRow implements Row {
+public class SpannerConnectionConfiguration {
 
-	private Struct rowStruct;
+	private String instanceName;
 
-	public SpannerRow(Struct rowStruct) {
-		this.rowStruct = rowStruct;
+	private String databaseName;
+
+	public SpannerConnectionConfiguration(String instanceName, String databaseName) {
+		this.instanceName = instanceName;
+		this.databaseName = databaseName;
 	}
 
-	// strings only for now
-	@Override public <T> T get(Object identifier, Class<T> type) {
-		// TODO: correct types
-		System.out.println("== row.get: " + identifier + "; asked for type: " + type
-		+ "; row struct = " + rowStruct);
-		return (T)rowStruct.getString((int)identifier);
+	public String getInstanceName() {
+		return instanceName;
+	}
+
+	public String getDatabaseName() {
+		return databaseName;
 	}
 }
