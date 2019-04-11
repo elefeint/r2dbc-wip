@@ -30,50 +30,7 @@ import static reactor.function.TupleUtils.function;
 
 /**
  */
-public class SpannerResult implements Result {
+public interface SpannerResult extends Result {
 
-	/*
-	private Flux<SpannerRow> rows;
 
-	private Mono<SpannerRowMetadata> rowMetadata;
-
-	public SpannerResult(Flux<SpannerRow> rows, Mono<SpannerRowMetadata> metadata) {
-		this.rows = rows;
-		this.rowMetadata = metadata;
-	}
-	*/
-
-	private ResultSet resultSet;
-
-	public SpannerResult(ResultSet resultSet) {
-		this.resultSet = resultSet;
-	}
-
-	@Override
-	public Publisher<Integer> getRowsUpdated() {
-		// TODO: implement
-		return Mono.just(1);
-	}
-
-	@Override
-	public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
-		return Flux.create(sink -> {
-			sink.onRequest(n -> {
-				System.out.println("=== demand = " + n);
-				for (int i = 0; i < n; i++) {
-					if (this.resultSet.next()) {
-						sink.next(f.apply(new SpannerRow(this.resultSet.getCurrentRowAsStruct()),
-							new SpannerRowMetadata()));
-					} else {
-						sink.complete();
-						break;
-					}
-				}
-			});
-
-		});
-/*		return this.rows
-			.zipWith(this.rowMetadata.repeat())
-			.map(function(f::apply));*/
-	}
 }

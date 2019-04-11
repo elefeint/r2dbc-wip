@@ -16,8 +16,11 @@
 
 package io.r2dbc.spanner;
 
-import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.ResultSet;
+import com.google.spanner.v1.CreateSessionRequest;
+import com.google.spanner.v1.ExecuteSqlRequest;
+import com.google.spanner.v1.ResultSet;
+import com.google.spanner.v1.Session;
+import com.google.spanner.v1.SpannerGrpc;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
@@ -25,15 +28,18 @@ import reactor.core.publisher.Flux;
 
 /**
  */
-public class ClientLibrarySpannerReadStatement implements Statement {
+public class GrpcSpannerReadStatement implements Statement {
 
-	private DatabaseClient databaseClient;
+	private SpannerGrpc.SpannerBlockingStub stub;
 
 	private String sql;
 
-	public ClientLibrarySpannerReadStatement(DatabaseClient databaseClient, String sql) {
-		this.databaseClient = databaseClient;
+	private Session session;
+
+	public GrpcSpannerReadStatement(SpannerGrpc.SpannerBlockingStub stub, Session session, String sql) {
+		this.stub = stub;
 		this.sql = sql;
+		this.session = session;
 	}
 
 	@Override
@@ -64,12 +70,18 @@ public class ClientLibrarySpannerReadStatement implements Statement {
 	@Override
 	public Publisher<? extends Result> execute() {
 
-		System.out.println("=== ClientLibrarySpannerReadStatement: execute");
+		System.out.println("=== GrpcSpannerReadStatement: execute; sql = " + this.sql);
 
-		com.google.cloud.spanner.Statement spannerStatement = com.google.cloud.spanner.Statement.of(this.sql);
-		ResultSet resultSet = this.databaseClient.readOnlyTransaction().executeQuery(spannerStatement);
+
+		ResultSet resultSet = this.stub.executeSql(ExecuteSqlRequest
+			.newBuilder()
+			.setSession(this.session.getName())
+			.setSql(this.sql)
+			.build());
+		//com.google.cloud.spanner.Statement spannerStatement = com.google.cloud.spanner.Statement.of(this.sql);
+		//ResultSet resultSet = this.databaseClient.readOnlyTransaction().executeQuery(spannerStatement);
 
 		// only one result for now; no multiple statements supported. Not Mono because eventual support?
-		return Flux.just(new ClientLibrarySpannerResult(resultSet));
+		return Flux.just(new GrpcSpannerResult(resultSet));
 	}
 }

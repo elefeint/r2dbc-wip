@@ -16,35 +16,26 @@
 
 package io.r2dbc.spanner;
 
-import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.Struct;
+import com.google.protobuf.ListValue;
+import io.r2dbc.spi.Row;
 
 /**
+ * TODO: everything
  */
-public class SpannerConnectionConfiguration {
+public class GrpcSpannerRow implements Row {
 
-	private String instanceName;
+	private ListValue listValue;
 
-	private String databaseName;
-
-	public SpannerConnectionConfiguration(String instanceName, String databaseName) {
-		this.instanceName = instanceName;
-		this.databaseName = databaseName;
+	public GrpcSpannerRow(ListValue listValue) {
+		this.listValue = listValue;
 	}
 
-	public String getInstanceName() {
-		return instanceName;
-	}
-
-	public String getDatabaseName() {
-		return databaseName;
-	}
-
-	public String getFullyQualifiedDatabaseName() {
-		return "projects/"
-		+ ServiceOptions.getDefaultProjectId()
-		+ "/instances/"
-		+ this.instanceName
-		+ "/databases/"
-			+ this.databaseName;
+	// strings only for now
+	@Override public <T> T get(Object identifier, Class<T> type) {
+		// TODO: correct types
+		System.out.println("== row.get: " + identifier + "; asked for type: " + type
+		+ "; listvalue = " + this.listValue);
+		return (T)this.listValue.getValues((int)identifier).getStringValue();
 	}
 }

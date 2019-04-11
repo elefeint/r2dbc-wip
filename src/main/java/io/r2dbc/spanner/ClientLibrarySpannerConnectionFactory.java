@@ -26,11 +26,11 @@ import reactor.core.publisher.Mono;
 
 /**
  */
-public class SpannerConnectionFactory implements ConnectionFactory {
+public class ClientLibrarySpannerConnectionFactory implements ConnectionFactory {
 
 	private SpannerConnectionConfiguration config;
 
-	public SpannerConnectionFactory(SpannerConnectionConfiguration config) {
+	public ClientLibrarySpannerConnectionFactory(SpannerConnectionConfiguration config) {
 		this.config = config;
 	}
 

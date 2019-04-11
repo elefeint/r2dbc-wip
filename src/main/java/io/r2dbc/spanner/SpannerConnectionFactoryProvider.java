@@ -36,7 +36,10 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 			connectionFactoryOptions.getValue(Option.valueOf("instance")),
 			connectionFactoryOptions.getValue(Option.valueOf("database")));
 
-		return new SpannerConnectionFactory(config);
+		if ("grpc".equals(connectionFactoryOptions.getValue(Option.valueOf("impl")))) {
+			return new GrpcSpannerConnectionFactory(config);
+		}
+		return new ClientLibrarySpannerConnectionFactory(config);
 	}
 
 	@Override

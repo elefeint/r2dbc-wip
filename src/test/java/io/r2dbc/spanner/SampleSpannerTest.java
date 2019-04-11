@@ -45,6 +45,7 @@ public class SampleSpannerTest {
 			.option(DRIVER, "spanner")
 			.option(Option.valueOf("instance"), "reactivetest")
 			.option(DATABASE, "testdb")
+			.option(Option.valueOf("impl"), "grpc")
 			.build());
 
 		Mono<Connection> connection = (Mono<Connection>)connectionFactory.create();
@@ -66,10 +67,12 @@ public class SampleSpannerTest {
 
 			resultStream.subscribe(result -> {
 				System.out.println("*** result: " + result);
-				result.map((Row row, RowMetadata meta) -> {
+				Flux<String> titleColumns = Flux.from(result.map((Row row, RowMetadata meta) -> {
 					System.out.println("*** column 0 requested: " + row.toString());
 					return (String)row.get(0);
-				}).subscribe((String s) -> {
+				}));
+
+				titleColumns.subscribe((String s) -> {
 					System.out.println("Row string retrieved: " + s);
 					latch.countDown();
 

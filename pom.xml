@@ -28,9 +28,17 @@
       <version>1.0.0.BUILD-SNAPSHOT</version>
     </dependency>
 
+    <!--client library level implementation -->
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-spanner</artifactId>
+      <version>1.11.0</version>
+    </dependency>
+
+    <!-- grpc api level implementation -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
       <version>1.11.0</version>
     </dependency>
 
@@ -40,6 +48,7 @@
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
+
 
   </dependencies>
 
