@@ -14,57 +14,24 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.clientlibrary;
 
-import com.google.api.gax.core.GoogleCredentialsProvider;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.DatabaseClient;
-import com.google.spanner.v1.CreateSessionRequest;
-import com.google.spanner.v1.Session;
-import com.google.spanner.v1.SpannerGrpc;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.auth.MoreCallCredentials;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
-import java.io.IOException;
 import org.reactivestreams.Publisher;
 
 /**
  */
-public class GrpcSpannerConnection implements Connection {
+public class ClientLibrarySpannerConnection implements Connection {
 
-	private SpannerConnectionConfiguration config;
+	private DatabaseClient databaseClient;
 
-	SpannerGrpc.SpannerBlockingStub stub;
-
-	private Session session;
-
-	public GrpcSpannerConnection(SpannerConnectionConfiguration config) {
-		System.out.println("=== spannerConnection constructor; fully qualified db = " + config.getFullyQualifiedDatabaseName());
-		this.config = config;
-
-		ManagedChannel channel = ManagedChannelBuilder
-			.forAddress("spanner.googleapis.com", 443)
-			.build();
-		this.stub = SpannerGrpc.newBlockingStub(channel)
-			.withCallCredentials(MoreCallCredentials.from(getCredentials()));
-
-		this.session = this.stub.createSession(CreateSessionRequest.newBuilder()
-			.setDatabase(config.getFullyQualifiedDatabaseName())
-			.build());
-	}
-
-	private GoogleCredentials getCredentials() {
-		try {
-			return GoogleCredentials.getApplicationDefault();
-		} catch (IOException e) {
-			System.out.println("can't get credentials");
-			e.printStackTrace();
-			return null;
-		}
+	public ClientLibrarySpannerConnection(DatabaseClient databaseClient) {
+		System.out.println("=== spannerConnection constructor");
+		this.databaseClient = databaseClient;
 	}
 
 	public Publisher<Void> beginTransaction() {
@@ -91,7 +58,7 @@ public class GrpcSpannerConnection implements Connection {
 		// plug into spring data spanner here?
 		// or streaming read vs streaming sql
 		System.out.println("=== Creating statement");
-		return new GrpcSpannerReadStatement(this.stub, this.session, sql);
+		return new ClientLibrarySpannerReadStatement(this.databaseClient, sql);
 	}
 
 	public Publisher<Void> releaseSavepoint(String s) {

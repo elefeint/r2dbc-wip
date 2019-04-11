@@ -45,7 +45,7 @@ public class SampleSpannerTest {
 			.option(DRIVER, "spanner")
 			.option(Option.valueOf("instance"), "reactivetest")
 			.option(DATABASE, "testdb")
-			.option(Option.valueOf("impl"), "grpc")
+			.option(Option.valueOf("impl"), "grpc") // comment out for client library path
 			.build());
 
 		Mono<Connection> connection = (Mono<Connection>)connectionFactory.create();
@@ -76,7 +76,6 @@ public class SampleSpannerTest {
 					System.out.println("Row string retrieved: " + s);
 					latch.countDown();
 
-					System.out.println("after retrieving string diff thread: " + latch.getCount());
 				});
 			});
 		});

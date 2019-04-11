@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.grpc;
 
-import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.ResultSet;
 import com.google.spanner.v1.Session;

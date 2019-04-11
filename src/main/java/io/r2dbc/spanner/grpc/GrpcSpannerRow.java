@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.grpc;
 
 import com.google.cloud.spanner.Struct;
 import com.google.protobuf.ListValue;

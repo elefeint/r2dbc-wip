@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.grpc;
 
-import com.google.cloud.spanner.ResultSet;
-import io.r2dbc.spi.Result;
+import com.google.protobuf.ListValue;
+import com.google.spanner.v1.ResultSet;
+import io.r2dbc.spanner.SpannerResult;
+import io.r2dbc.spanner.SpannerRowMetadata;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.util.function.BiFunction;
@@ -27,7 +29,7 @@ import reactor.core.publisher.Mono;
 
 /**
  */
-public class ClientLibrarySpannerResult implements SpannerResult {
+public class GrpcSpannerResult implements SpannerResult {
 
 	/*
 	private Flux<SpannerRow> rows;
@@ -42,7 +44,7 @@ public class ClientLibrarySpannerResult implements SpannerResult {
 
 	private ResultSet resultSet;
 
-	public ClientLibrarySpannerResult(ResultSet resultSet) {
+	public GrpcSpannerResult(ResultSet resultSet) {
 		this.resultSet = resultSet;
 	}
 
@@ -57,15 +59,11 @@ public class ClientLibrarySpannerResult implements SpannerResult {
 		return Flux.create(sink -> {
 			sink.onRequest(n -> {
 				System.out.println("=== demand = " + n);
-				for (int i = 0; i < n; i++) {
-					if (this.resultSet.next()) {
-						sink.next(f.apply(new SpannerRow(this.resultSet.getCurrentRowAsStruct()),
+				for (ListValue value : resultSet.getRowsList()) {
+						sink.next(f.apply(new GrpcSpannerRow(value),
 							new SpannerRowMetadata()));
-					} else {
-						sink.complete();
-						break;
-					}
 				}
+				sink.complete();
 			});
 
 		});

@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.grpc;
 
-import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.DatabaseId;
-import com.google.cloud.spanner.Spanner;
-import com.google.cloud.spanner.SpannerOptions;
+import io.r2dbc.spanner.SpannerConnectionConfiguration;
+import io.r2dbc.spanner.SpannerConnectionFactoryMetadata;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;

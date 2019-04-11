@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.r2dbc.spanner;
+package io.r2dbc.spanner.clientlibrary;
 
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.ResultSet;

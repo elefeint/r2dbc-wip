@@ -25,7 +25,7 @@ public class SpannerConnectionFactoryMetadata implements ConnectionFactoryMetada
 
 	public static final String NAME = "Spanner";
 
-	static final SpannerConnectionFactoryMetadata INSTANCE = new SpannerConnectionFactoryMetadata();
+	public static final SpannerConnectionFactoryMetadata INSTANCE = new SpannerConnectionFactoryMetadata();
 
 	private SpannerConnectionFactoryMetadata() {
 	}

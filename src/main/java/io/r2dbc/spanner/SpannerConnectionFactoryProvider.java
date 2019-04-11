@@ -17,6 +17,8 @@
 package io.r2dbc.spanner;
 
 import io.r2dbc.h2.util.Assert;
+import io.r2dbc.spanner.clientlibrary.ClientLibrarySpannerConnectionFactory;
+import io.r2dbc.spanner.grpc.GrpcSpannerConnectionFactory;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
