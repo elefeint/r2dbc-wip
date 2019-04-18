@@ -33,6 +33,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
 /**
+ *
  */
 public class SampleSpannerTest {
 	@Test
@@ -41,46 +42,35 @@ public class SampleSpannerTest {
 		System.out.println("*** starting");
 		CountDownLatch latch = new CountDownLatch(2);
 
-		ConnectionFactory connectionFactory = ConnectionFactories.get(ConnectionFactoryOptions.builder()
-			.option(DRIVER, "spanner")
-			.option(Option.valueOf("instance"), "reactivetest")
-			.option(DATABASE, "testdb")
-			.option(Option.valueOf("impl"), "grpc") // comment out for client library path
-			.build());
+		ConnectionFactory connectionFactory =
+			ConnectionFactories.get(ConnectionFactoryOptions.builder()
+				.option(DRIVER, "spanner")
+				.option(Option.valueOf("instance"), "reactivetest")
+				.option(DATABASE, "testdb")
+				.option(Option.valueOf("impl"), "grpc") // comment out for client library path
+				.build());
 
-		Mono<Connection> connection = (Mono<Connection>)connectionFactory.create();
+		Mono<Connection> connection = (Mono<Connection>) connectionFactory.create();
 		System.out.println("*** connection mono " + connection);
-
 
 		connection.doOnError(e -> {
 			System.out.println("*** error: " + e);
 			latch.countDown();
 		});
 
-
-
-		connection.subscribe(conn -> {
+		connection.flatMapMany(conn -> {
 			System.out.println("*** subscribed: " + conn);
 
 			Statement statement = conn.createStatement("select title from book");
-			Flux<SpannerResult> resultStream = (Flux<SpannerResult>)statement.execute();
-
-			resultStream.subscribe(result -> {
-				System.out.println("*** result: " + result);
-				Flux<String> titleColumns = Flux.from(result.map((Row row, RowMetadata meta) -> {
-					System.out.println("*** column 0 requested: " + row.toString());
-					return (String)row.get(0);
-				}));
-
-				titleColumns.subscribe((String s) -> {
-					System.out.println("Row string retrieved: " + s);
-					latch.countDown();
-
-				});
-			});
+			return statement.execute();
+		}).flatMap(result -> result.map((Row row, RowMetadata meta) -> {
+			System.out.println("*** column 0 requested: " + row.toString());
+			return (String) row.get(0);
+		})).subscribe((String s) -> {
+			System.out.println("Row string retrieved: " + s);
+			latch.countDown();
 		});
 
 		latch.await();
-
 	}
 }
