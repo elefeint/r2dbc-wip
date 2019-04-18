@@ -16,13 +16,18 @@
 
 package io.r2dbc.spanner.grpc;
 
+import com.google.api.core.ApiFutureCallback;
+import com.google.api.core.ApiFutures;
+import com.google.api.core.ListenableFutureToApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
+import io.grpc.stub.StreamObserver;
 import io.r2dbc.spanner.SpannerConnectionConfiguration;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
@@ -30,6 +35,7 @@ import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import java.io.IOException;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 /**
  */
@@ -37,9 +43,9 @@ public class GrpcSpannerConnection implements Connection {
 
 	private SpannerConnectionConfiguration config;
 
-	SpannerGrpc.SpannerBlockingStub stub;
+	SpannerGrpc.SpannerStub stub;
 
-	private Session session;
+	private Mono<Session> session;
 
 	public GrpcSpannerConnection(SpannerConnectionConfiguration config) {
 		System.out.println("=== spannerConnection constructor; fully qualified db = " + config.getFullyQualifiedDatabaseName());
@@ -48,12 +54,29 @@ public class GrpcSpannerConnection implements Connection {
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress("spanner.googleapis.com", 443)
 			.build();
-		this.stub = SpannerGrpc.newBlockingStub(channel)
+		this.stub = SpannerGrpc.newStub(channel)
 			.withCallCredentials(MoreCallCredentials.from(getCredentials()));
 
-		this.session = this.stub.createSession(CreateSessionRequest.newBuilder()
-			.setDatabase(config.getFullyQualifiedDatabaseName())
-			.build());
+		this.session = Mono.create(sink -> {
+			this.stub.createSession(
+				CreateSessionRequest.newBuilder()
+					.setDatabase(config.getFullyQualifiedDatabaseName())
+					.build(),
+				new StreamObserver<Session>() {
+					@Override public void onNext(Session session) {
+						sink.success(session);
+					}
+
+					@Override public void onError(Throwable throwable) {
+						sink.error(throwable);
+					}
+
+					@Override public void onCompleted() {
+						// do nothing; Mono does not need to be completed (?).
+					}
+				});
+
+		});
 	}
 
 	private GoogleCredentials getCredentials() {

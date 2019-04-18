@@ -24,21 +24,22 @@ import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  */
 public class GrpcSpannerReadStatement implements Statement {
 
-	private SpannerGrpc.SpannerBlockingStub stub;
+	private SpannerGrpc.SpannerStub stub;
 
 	private String sql;
 
-	private Session session;
+	private Mono<Session> sessionMono;
 
-	public GrpcSpannerReadStatement(SpannerGrpc.SpannerBlockingStub stub, Session session, String sql) {
+	public GrpcSpannerReadStatement(SpannerGrpc.SpannerStub stub, Mono<Session> sessionMono, String sql) {
 		this.stub = stub;
 		this.sql = sql;
-		this.session = session;
+		this.sessionMono = sessionMono;
 	}
 
 	@Override
@@ -71,16 +72,23 @@ public class GrpcSpannerReadStatement implements Statement {
 
 		System.out.println("=== GrpcSpannerReadStatement: execute; sql = " + this.sql);
 
+		return this.sessionMono.flatMapMany(
+			session -> {
+				System.out.println("got session; flatmapping it into result sets");
+				// Async calls don't return anything, so can't just map -- Flux.create() is needed.
+				return Flux.<GrpcSpannerResult>create(sink -> {
+						this.stub.executeSql(
+							createRequest(session),
+							new FluxStreamObserver<ResultSet,GrpcSpannerResult>(sink, resultSet -> new GrpcSpannerResult(resultSet)));
+				});
+			});
+	}
 
-		ResultSet resultSet = this.stub.executeSql(ExecuteSqlRequest
+	private ExecuteSqlRequest createRequest(Session session) {
+		return ExecuteSqlRequest
 			.newBuilder()
-			.setSession(this.session.getName())
+			.setSession(session.getName())
 			.setSql(this.sql)
-			.build());
-		//com.google.cloud.spanner.Statement spannerStatement = com.google.cloud.spanner.Statement.of(this.sql);
-		//ResultSet resultSet = this.databaseClient.readOnlyTransaction().executeQuery(spannerStatement);
-
-		// only one result for now; no multiple statements supported. Not Mono because eventual support?
-		return Flux.just(new GrpcSpannerResult(resultSet));
+			.build();
 	}
 }

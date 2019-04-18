@@ -24,6 +24,7 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import io.r2dbc.spi.Statement;
+import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -31,13 +32,16 @@ import reactor.core.publisher.Mono;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 /**
- *
+ * Data setup for this was done manually.
  */
 public class SampleSpannerTest {
+
 	@Test
-	public void testsomething() throws InterruptedException {
+	public void testConnectionOverGrpc() throws InterruptedException {
 
 		System.out.println("*** starting");
 		CountDownLatch latch = new CountDownLatch(2);
@@ -54,9 +58,10 @@ public class SampleSpannerTest {
 		System.out.println("*** connection mono " + connection);
 
 		connection.doOnError(e -> {
-			System.out.println("*** error: " + e);
-			latch.countDown();
+			fail("connection errored out: " + e.getMessage());
 		});
+
+		Vector<String> titles = new Vector<>();
 
 		connection.flatMapMany(conn -> {
 			System.out.println("*** subscribed: " + conn);
@@ -64,13 +69,57 @@ public class SampleSpannerTest {
 			Statement statement = conn.createStatement("select title from book");
 			return statement.execute();
 		}).flatMap(result -> result.map((Row row, RowMetadata meta) -> {
+			// gets the first column (which happens to be the only column).
 			System.out.println("*** column 0 requested: " + row.toString());
 			return (String) row.get(0);
 		})).subscribe((String s) -> {
-			System.out.println("Row string retrieved: " + s);
+			titles.add(s);
 			latch.countDown();
 		});
 
 		latch.await();
+		assertThat(titles).containsExactlyInAnyOrder("three musketeers", "and then there was thunder");
+	}
+
+
+	@Test
+	public void testConnectionOverClientLibrary() throws InterruptedException {
+
+		System.out.println("*** starting");
+		CountDownLatch latch = new CountDownLatch(2);
+
+		ConnectionFactory connectionFactory =
+			ConnectionFactories.get(ConnectionFactoryOptions.builder()
+				.option(DRIVER, "spanner")
+				.option(Option.valueOf("instance"), "reactivetest")
+				.option(DATABASE, "testdb")
+				// no grpc option; defaults to client library
+				.build());
+
+		Mono<Connection> connection = (Mono<Connection>) connectionFactory.create();
+		System.out.println("*** connection mono " + connection);
+
+		connection.doOnError(e -> {
+			fail("connection errored out: " + e.getMessage());
+		});
+
+		Vector<String> titles = new Vector<>();
+
+		connection.flatMapMany(conn -> {
+			System.out.println("*** subscribed: " + conn);
+
+			Statement statement = conn.createStatement("select title from book");
+			return statement.execute();
+		}).flatMap(result -> result.map((Row row, RowMetadata meta) -> {
+			// gets the first column (which happens to be the only column).
+			System.out.println("*** column 0 requested: " + row.toString());
+			return (String) row.get(0);
+		})).subscribe((String s) -> {
+			titles.add(s);
+			latch.countDown();
+		});
+
+		latch.await();
+		assertThat(titles).containsExactlyInAnyOrder("three musketeers", "and then there was thunder");
 	}
 }

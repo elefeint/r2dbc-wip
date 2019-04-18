@@ -18,8 +18,8 @@ package io.r2dbc.spanner.grpc;
 
 import com.google.protobuf.ListValue;
 import com.google.spanner.v1.ResultSet;
-import io.r2dbc.spanner.SpannerResult;
 import io.r2dbc.spanner.SpannerRowMetadata;
+import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.util.function.BiFunction;
@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
 
 /**
  */
-public class GrpcSpannerResult implements SpannerResult {
+public class GrpcSpannerResult implements Result {
 
 	/*
 	private Flux<SpannerRow> rows;

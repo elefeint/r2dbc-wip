@@ -17,7 +17,6 @@
 package io.r2dbc.spanner.clientlibrary;
 
 import com.google.cloud.spanner.ResultSet;
-import io.r2dbc.spanner.SpannerResult;
 import io.r2dbc.spanner.SpannerRow;
 import io.r2dbc.spanner.SpannerRowMetadata;
 import io.r2dbc.spi.Result;
@@ -30,7 +29,7 @@ import reactor.core.publisher.Mono;
 
 /**
  */
-public class ClientLibrarySpannerResult implements SpannerResult {
+public class ClientLibrarySpannerResult implements Result {
 
 	/*
 	private Flux<SpannerRow> rows;
