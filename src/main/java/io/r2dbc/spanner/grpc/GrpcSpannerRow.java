@@ -18,24 +18,28 @@ package io.r2dbc.spanner.grpc;
 
 import com.google.cloud.spanner.Struct;
 import com.google.protobuf.ListValue;
+import com.google.protobuf.Value;
 import io.r2dbc.spi.Row;
+import java.util.List;
 
 /**
  * TODO: everything
  */
 public class GrpcSpannerRow implements Row {
 
-	private ListValue listValue;
+	private List<Value> listValue;
 
-	public GrpcSpannerRow(ListValue listValue) {
+	public GrpcSpannerRow(List<Value> listValue) {
 		this.listValue = listValue;
 	}
 
 	// strings only for now
-	@Override public <T> T get(Object identifier, Class<T> type) {
+	// TODO: extract column names from metadata; enable looking up by column.
+	@Override
+	public <T> T get(Object identifier, Class<T> type) {
 		// TODO: correct types
 		System.out.println("== row.get: " + identifier + "; asked for type: " + type
 		+ "; listvalue = " + this.listValue);
-		return (T)this.listValue.getValues((int)identifier).getStringValue();
+		return (T)this.listValue.get((int)identifier).getStringValue();
 	}
 }

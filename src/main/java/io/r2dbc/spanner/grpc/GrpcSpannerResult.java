@@ -17,11 +17,16 @@
 package io.r2dbc.spanner.grpc;
 
 import com.google.protobuf.ListValue;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.ResultSet;
+import com.google.spanner.v1.ResultSetMetadata;
+import com.google.spanner.v1.StructType;
 import io.r2dbc.spanner.SpannerRowMetadata;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -42,14 +47,15 @@ public class GrpcSpannerResult implements Result {
 	}
 	*/
 
-	private ResultSet resultSet;
+	private PartialResultSet resultSet;
 
-	public GrpcSpannerResult(ResultSet resultSet) {
+	public GrpcSpannerResult(PartialResultSet resultSet) {
 		this.resultSet = resultSet;
 	}
 
 	@Override
 	public Publisher<Integer> getRowsUpdated() {
+
 		// TODO: implement
 		return Mono.just(1);
 	}
@@ -57,18 +63,43 @@ public class GrpcSpannerResult implements Result {
 	@Override
 	public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
 		return Flux.create(sink -> {
+			// TODO: on request is not doing anything with streaming read. Discuss.
 			sink.onRequest(n -> {
-				System.out.println("=== demand = " + n);
-				for (ListValue value : resultSet.getRowsList()) {
-						sink.next(f.apply(new GrpcSpannerRow(value),
-							new SpannerRowMetadata()));
-				}
+					System.out.println("=== demand = " + n);
+				});
+
+			// TODO: store result metadata; it only shows up in first result.
+			ResultSetMetadata metadata =  resultSet.getMetadata();
+			StructType rowType = metadata.getRowType();
+			int fieldsPerRow = rowType.getFieldsCount();
+
+			// In the basic test with a single column being returned from 2 rows, all results come back
+			// as a single PartialResultSet.
+			System.out.println("!!!!!!!!!!!!!!!! field count in a row = " + fieldsPerRow);
+
+			List<Value> values = resultSet.getValuesList();
+			System.out.println("!!!!!!!!!!!!!!!! values = " + values.size());
+
+			// TODO: account for chunked values (field split between partial result sets).
+			int startIndex = 0;
+			int endIndex = fieldsPerRow;
+
+			// this loop takes care of multiple rows per PartialResultSet
+			while (endIndex <= values.size()) {
+				System.out.println("looking up columns from " + startIndex + " to " + endIndex);
+				sink.next((
+					f.apply(
+						new GrpcSpannerRow(values.subList(startIndex, endIndex)), new SpannerRowMetadata())));
+				startIndex += fieldsPerRow;
+				endIndex += fieldsPerRow;
+
+			}
+
+			// TODO: buffer partials; add them to the n
+			// TODO: resuming streaming call with resumeToken
+
 				sink.complete();
 			});
 
-		});
-/*		return this.rows
-			.zipWith(this.rowMetadata.repeat())
-			.map(function(f::apply));*/
 	}
 }

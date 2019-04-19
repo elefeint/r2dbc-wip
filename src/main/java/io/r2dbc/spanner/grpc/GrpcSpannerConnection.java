@@ -22,11 +22,17 @@ import com.google.api.core.ListenableFutureToApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.spanner.v1.CreateSessionRequest;
+import com.google.spanner.v1.ExecuteSqlRequest;
+import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
+import io.grpc.CallOptions;
+import io.grpc.ClientCall;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
 import io.grpc.auth.MoreCallCredentials;
+import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
 import io.r2dbc.spanner.SpannerConnectionConfiguration;
 import io.r2dbc.spi.Batch;
@@ -47,6 +53,8 @@ public class GrpcSpannerConnection implements Connection {
 
 	private Mono<Session> session;
 
+	ClientCall<ExecuteSqlRequest, PartialResultSet> executeStreamingSqlCall;
+
 	public GrpcSpannerConnection(SpannerConnectionConfiguration config) {
 		System.out.println("=== spannerConnection constructor; fully qualified db = " + config.getFullyQualifiedDatabaseName());
 		this.config = config;
@@ -54,8 +62,15 @@ public class GrpcSpannerConnection implements Connection {
 		ManagedChannel channel = ManagedChannelBuilder
 			.forAddress("spanner.googleapis.com", 443)
 			.build();
+
 		this.stub = SpannerGrpc.newStub(channel)
 			.withCallCredentials(MoreCallCredentials.from(getCredentials()));
+		SpannerGrpc.getExecuteStreamingSqlMethod();
+
+		CallOptions callOptions =  CallOptions.DEFAULT.withCallCredentials(MoreCallCredentials.from(getCredentials()));
+
+		MethodDescriptor<ExecuteSqlRequest, PartialResultSet> executeStreamingSqlMethodDescriptor = SpannerGrpc.getExecuteStreamingSqlMethod();
+		this.executeStreamingSqlCall = channel.newCall(executeStreamingSqlMethodDescriptor, callOptions);
 
 		this.session = Mono.create(sink -> {
 			this.stub.createSession(
@@ -113,7 +128,7 @@ public class GrpcSpannerConnection implements Connection {
 		// plug into spring data spanner here?
 		// or streaming read vs streaming sql
 		System.out.println("=== Creating statement");
-		return new GrpcSpannerReadStatement(this.stub, this.session, sql);
+		return new GrpcSpannerReadStatement(this.executeStreamingSqlCall , this.session, sql);
 	}
 
 	public Publisher<Void> releaseSavepoint(String s) {

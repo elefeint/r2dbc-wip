@@ -17,9 +17,10 @@
 package io.r2dbc.spanner.grpc;
 
 import com.google.spanner.v1.ExecuteSqlRequest;
-import com.google.spanner.v1.ResultSet;
+import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
-import com.google.spanner.v1.SpannerGrpc;
+import io.grpc.ClientCall;
+import io.grpc.stub.ClientCalls;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
@@ -30,14 +31,16 @@ import reactor.core.publisher.Mono;
  */
 public class GrpcSpannerReadStatement implements Statement {
 
-	private SpannerGrpc.SpannerStub stub;
+	private ClientCall<ExecuteSqlRequest, PartialResultSet> streamingSqlCall;
 
 	private String sql;
 
 	private Mono<Session> sessionMono;
 
-	public GrpcSpannerReadStatement(SpannerGrpc.SpannerStub stub, Mono<Session> sessionMono, String sql) {
-		this.stub = stub;
+	public GrpcSpannerReadStatement(
+		ClientCall<ExecuteSqlRequest, PartialResultSet> executeStreamingSqlCall, Mono<Session> sessionMono, String sql) {
+
+		this.streamingSqlCall = executeStreamingSqlCall;
 		this.sql = sql;
 		this.sessionMono = sessionMono;
 	}
@@ -72,14 +75,18 @@ public class GrpcSpannerReadStatement implements Statement {
 
 		System.out.println("=== GrpcSpannerReadStatement: execute; sql = " + this.sql);
 
+
 		return this.sessionMono.flatMapMany(
 			session -> {
 				System.out.println("got session; flatmapping it into result sets");
 				// Async calls don't return anything, so can't just map -- Flux.create() is needed.
 				return Flux.<GrpcSpannerResult>create(sink -> {
-						this.stub.executeSql(
-							createRequest(session),
-							new FluxStreamObserver<ResultSet,GrpcSpannerResult>(sink, resultSet -> new GrpcSpannerResult(resultSet)));
+
+					ClientCalls.asyncServerStreamingCall(
+						this.streamingSqlCall,
+						createRequest(session),
+						new FluxStreamObserver<PartialResultSet,GrpcSpannerResult>(sink, resultSet -> new GrpcSpannerResult(resultSet)));
+
 				});
 			});
 	}
